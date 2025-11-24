@@ -121,10 +121,10 @@
           <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 lg:items-center">
             <div class="w-full sm:w-auto">
               <label class="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">Filtrer par statut</label>
-              <select 
-                v-model="selectedStatus" 
+              <select
+                v-model="selectedStatus"
                 @change="filterRegistrations"
-                class="w-full sm:w-auto bg-white/20 text-white rounded-lg sm:rounded-xl px-3 py-2 sm:px-4 sm:py-2 border border-white/30 backdrop-blur-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                class="custom-select w-full sm:w-auto bg-white/20 text-white rounded-lg sm:rounded-xl px-3 py-2 sm:px-4 sm:py-2 border border-white/30 backdrop-blur-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
               >
                 <option value="">Tous les statuts</option>
                 <option value="SUBMITTED">En attente</option>
@@ -589,3 +589,17 @@ onMounted(() => {
   fetchRegistrations()
 })
 </script>
+
+<style scoped>
+/* Fix select options visibility */
+.custom-select option {
+  background-color: white;
+  color: #1f2937;
+  padding: 8px;
+}
+
+.custom-select option:checked {
+  background-color: #f97316;
+  color: white;
+}
+</style>

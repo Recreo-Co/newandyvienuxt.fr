@@ -156,7 +156,7 @@
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Niveau scolaire *</label>
-                  <select v-model="editForm.schoolLevel" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
+                  <select v-model="editForm.schoolLevel" class="custom-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
                     <option value="">Sélectionner...</option>
                     <option value="CP">CP</option>
                     <option value="CE1">CE1</option>
@@ -176,7 +176,7 @@
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Taille T-shirt *</label>
-                  <select v-model="editForm.tShirtSize" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
+                  <select v-model="editForm.tShirtSize" class="custom-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
                     <option value="">Sélectionner...</option>
                     <option value="XS">XS</option>
                     <option value="S">S</option>
@@ -242,7 +242,7 @@
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Relation *</label>
-                  <select v-model="editGuardianForm.relationship" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
+                  <select v-model="editGuardianForm.relationship" class="custom-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
                     <option value="Parent">Parent</option>
                     <option value="Tuteur légal">Tuteur légal</option>
                     <option value="Autre">Autre</option>
@@ -298,7 +298,7 @@
                     </div>
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">Relation *</label>
-                      <select v-model="contact.relationship" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
+                      <select v-model="contact.relationship" class="custom-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
                         <option value="">Sélectionner...</option>
                         <option value="Parent">Parent</option>
                         <option value="Grand-parent">Grand-parent</option>
@@ -1067,5 +1067,17 @@ useHead({
   .date-field:not(:focus):invalid {
     color: transparent;
   }
+}
+
+/* Fix select options visibility */
+.custom-select option {
+  background-color: white;
+  color: #1f2937;
+  padding: 8px;
+}
+
+.custom-select option:checked {
+  background-color: #ef4444;
+  color: white;
 }
 </style>
