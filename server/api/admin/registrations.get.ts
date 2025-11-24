@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client'
 import { requireAdmin } from '~/server/utils/auth'
-import type { RegistrationWithRelations } from '~/types/database'
 
 const prisma = new PrismaClient()
 
@@ -35,7 +34,7 @@ export default defineEventHandler(async (event) => {
 
   } catch (error: any) {
     console.error('Erreur lors de la récupération des inscriptions:', error)
-    
+
     throw createError({
       statusCode: error.statusCode || 500,
       statusMessage: error.statusMessage || 'Erreur lors de la récupération des inscriptions'
