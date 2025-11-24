@@ -168,6 +168,17 @@
               <span class="hidden sm:inline">Gérer Groupes</span>
               <span class="sm:hidden">Groupes</span>
             </NuxtLink>
+            
+            <NuxtLink
+              to="/admin/users"
+              class="bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 backdrop-blur-xl text-white font-semibold py-2 px-3 sm:px-4 rounded-lg sm:rounded-xl transition-all duration-300 border border-blue-500/30 inline-flex items-center justify-center space-x-2 text-sm"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+              </svg>
+              <span class="hidden sm:inline">Gérer Utilisateurs</span>
+              <span class="sm:hidden">Users</span>
+            </NuxtLink>
           </div>
         </div>
       </div>
