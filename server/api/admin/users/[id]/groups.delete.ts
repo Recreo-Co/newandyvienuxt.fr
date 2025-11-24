@@ -1,39 +1,35 @@
-import { PrismaClient } from '@prisma/client'
-import { requireAdmin } from '~/server/utils/auth'
-
-const prisma = new PrismaClient()
+import { requireAdmin } from '../../../../utils/auth'
+import { prisma } from '../../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
-  try {
-    // Vérifier l'authentification et les droits admin
-    await requireAdmin(event, prisma)
+  // Vérifier l'authentification et les droits admin
+  await requireAdmin(event, prisma)
 
-    // Récupérer l'ID de l'utilisateur
-    const userId = parseInt(getRouterParam(event, 'id') || '0')
-    if (!userId) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'ID utilisateur invalide'
-      })
-    }
+  // Récupérer l'ID de l'utilisateur et du groupe
+  const userId = parseInt(getRouterParam(event, 'id') || '0')
+  const body = await readBody(event)
+  const { groupId } = body
 
-    // Récupérer les données du corps de la requête
-    const body = await readBody(event)
-    const { groupId } = body
+  if (!userId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'ID utilisateur invalide'
+    })
+  }
 
-    if (!groupId) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'ID du groupe manquant'
-      })
-    }
+  if (!groupId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'ID du groupe manquant'
+    })
+  }
 
-    // Vérifier que l'utilisateur existe
-    const user = await prisma.user.findUnique({
+  // Utiliser une transaction pour optimiser les requêtes
+  const updatedUser = await prisma.$transaction(async (tx) => {
+    // Vérifier que l'utilisateur existe et que le groupe est assigné
+    const user = await tx.user.findUnique({
       where: { id: userId },
-      include: {
-        teachingGroups: true
-      }
+      include: { teachingGroups: { select: { id: true } } }
     })
 
     if (!user) {
@@ -43,28 +39,19 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Vérifier que le groupe est bien assigné
-    const isAssigned = user.teachingGroups.some(g => g.id === groupId)
-    if (!isAssigned) {
+    if (!user.teachingGroups.some(g => g.id === groupId)) {
       throw createError({
         statusCode: 400,
         statusMessage: 'Ce groupe n\'est pas assigné à ce professeur'
       })
     }
 
-    // Retirer le groupe du professeur
-    await prisma.user.update({
+    // Retirer le groupe et retourner l'utilisateur mis à jour en une seule requête
+    return await tx.user.update({
       where: { id: userId },
       data: {
-        teachingGroups: {
-          disconnect: { id: groupId }
-        }
-      }
-    })
-
-    // Récupérer l'utilisateur mis à jour
-    const updatedUser = await prisma.user.findUnique({
-      where: { id: userId },
+        teachingGroups: { disconnect: { id: groupId } }
+      },
       include: {
         teachingGroups: {
           select: {
@@ -84,21 +71,11 @@ export default defineEventHandler(async (event) => {
         }
       }
     })
+  })
 
-    return {
-      success: true,
-      message: 'Groupe retiré avec succès',
-      user: updatedUser
-    }
-
-  } catch (error: any) {
-    console.error('Erreur lors du retrait du groupe:', error)
-
-    throw createError({
-      statusCode: error.statusCode || 500,
-      statusMessage: error.statusMessage || 'Erreur lors du retrait du groupe'
-    })
-  } finally {
-    await prisma.$disconnect()
+  return {
+    success: true,
+    message: 'Groupe retiré avec succès',
+    user: updatedUser
   }
 })
