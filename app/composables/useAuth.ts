@@ -28,9 +28,7 @@ export const useAuth = () => {
   
   const userCookie = useCookie<User | null>('auth-user', {
     default: () => null,
-    maxAge: 60 * 60 * 24 * 7, // 7 jours
-    serialize: JSON.stringify,
-    deserialize: JSON.parse
+    maxAge: 60 * 60 * 24 * 7 // 7 jours
   })
   
   // Initialiser user state avec les données du cookie
@@ -49,13 +47,15 @@ export const useAuth = () => {
       user.value = data.user
       userCookie.value = data.user
 
-      // Rediriger les admins vers le panel admin, les utilisateurs vers le dashboard
+      // Rediriger selon le rôle
       if (data.user.role === 'admin') {
         await navigateTo('/admin/panel')
+      } else if (data.user.role === 'professor') {
+        await navigateTo('/professor/dashboard')
       } else {
         await navigateTo('/dashboard')
       }
-      
+
       return { success: true }
     } catch (error: any) {
       return {

@@ -42,7 +42,8 @@
       "Read(/C:\\wamp64\\www\\newandyvienuxt.fr\\app\\pages\\inscription/**)",
       "Bash(netstat:*)",
       "Bash(xargs:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(npx nuxi typecheck:*)"
     ],
     "deny": [],
     "ask": []
