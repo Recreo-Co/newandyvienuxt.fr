@@ -205,6 +205,24 @@
                   <option value="admin">Administrateur</option>
                 </select>
               </div>
+
+              <!-- Manage Groups (Professor only) -->
+              <div v-if="user.roles === 'professor'" class="pt-3 border-t border-white/10">
+                <label class="block text-xs text-white mb-2">Groupes assignés</label>
+                <div v-if="user.teachingGroups && user.teachingGroups.length > 0" class="mb-2">
+                  <div v-for="group in user.teachingGroups" :key="group.id" class="flex items-center justify-between bg-white/10 rounded px-2 py-1 mb-1">
+                    <span class="text-white text-xs">{{ group.name }}</span>
+                    <button @click="removeGroupFromUser(user, group.id)" class="text-red-300 hover:text-red-100 text-xs">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <button @click="openGroupModal(user)" class="w-full bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 px-3 py-2 rounded-lg transition-colors text-xs">
+                  + Assigner un groupe
+                </button>
+              </div>
             </div>
           </div>
 
@@ -218,6 +236,7 @@
                   <th class="hidden lg:table-cell px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Date d'inscription</th>
                   <th class="hidden lg:table-cell px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Groupes</th>
                   <th class="px-4 py-4 lg:px-6 lg:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Changer Rôle</th>
+                  <th class="px-4 py-4 lg:px-6 lg:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-white/10">
@@ -244,7 +263,15 @@
                     {{ formatDate(user.createdAt) }}
                   </td>
                   <td class="hidden lg:table-cell px-6 py-4 text-sm text-white">
-                    <span v-if="user._count.teachingGroups > 0">
+                    <div v-if="user.roles === 'professor' && user.teachingGroups && user.teachingGroups.length > 0">
+                      <div v-for="group in user.teachingGroups.slice(0, 2)" :key="group.id" class="text-xs text-white mb-1">
+                        • {{ group.name }}
+                      </div>
+                      <span v-if="user.teachingGroups.length > 2" class="text-xs text-orange-100/60">
+                        +{{ user.teachingGroups.length - 2 }} autre(s)
+                      </span>
+                    </div>
+                    <span v-else-if="user._count.teachingGroups > 0" class="text-orange-100/60">
                       {{ user._count.teachingGroups }} groupe(s)
                     </span>
                     <span v-else class="text-orange-100/60">-</span>
@@ -259,6 +286,19 @@
                       <option value="professor">Professeur</option>
                       <option value="admin">Administrateur</option>
                     </select>
+                  </td>
+                  <td class="px-4 py-4 lg:px-6 lg:py-4">
+                    <button
+                      v-if="user.roles === 'professor'"
+                      @click="openGroupModal(user)"
+                      class="bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 px-3 py-1 rounded-lg transition-colors text-xs inline-flex items-center"
+                    >
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                      </svg>
+                      Gérer
+                    </button>
+                    <span v-else class="text-orange-100/60 text-xs">-</span>
                   </td>
                 </tr>
               </tbody>
@@ -321,6 +361,90 @@
           {{ toastMessage }}
         </div>
       </Transition>
+
+      <!-- Group Management Modal -->
+      <Transition name="modal">
+        <div v-if="showGroupModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="closeGroupModal">
+          <div class="bg-gradient-to-br from-orange-900 via-red-900 to-pink-900 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden border border-white/20 shadow-2xl">
+            <!-- Modal Header -->
+            <div class="bg-white/10 backdrop-blur-xl p-4 sm:p-6 border-b border-white/20">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-bold text-white">Gérer les groupes</h3>
+                  <p class="text-sm text-orange-100/80">{{ selectedUser?.email }}</p>
+                </div>
+                <button @click="closeGroupModal" class="text-white/60 hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-4 sm:p-6 overflow-y-auto max-h-[calc(80vh-180px)]">
+              <div v-if="loadingGroups" class="text-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+                <p class="text-white/60">Chargement des groupes...</p>
+              </div>
+
+              <div v-else class="space-y-3">
+                <div
+                  v-for="group in availableGroups"
+                  :key="group.id"
+                  class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition-all cursor-pointer"
+                  :class="{ 'border-purple-500 bg-purple-500/20': isGroupAssigned(group.id) }"
+                  @click="toggleGroupAssignment(group.id)"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center flex-1 min-w-0">
+                      <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <h4 class="text-white font-medium text-sm truncate">{{ group.name }}</h4>
+                        <p class="text-orange-100/60 text-xs truncate">{{ group.schedule }}</p>
+                        <p class="text-orange-100/60 text-xs">{{ group.ageGroup }}</p>
+                      </div>
+                    </div>
+                    <div class="flex-shrink-0 ml-3">
+                      <div
+                        class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
+                        :class="isGroupAssigned(group.id) ? 'bg-purple-500 border-purple-500' : 'border-white/40'"
+                      >
+                        <svg v-if="isGroupAssigned(group.id)" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="availableGroups.length === 0" class="text-center py-8">
+                  <p class="text-white/60">Aucun groupe disponible</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-white/10 backdrop-blur-xl p-4 sm:p-6 border-t border-white/20">
+              <div class="flex justify-between items-center">
+                <p class="text-sm text-white/80">
+                  {{ selectedUser?.teachingGroups?.length || 0 }} groupe(s) assigné(s)
+                </p>
+                <button
+                  @click="closeGroupModal"
+                  class="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -340,6 +464,12 @@ const selectedRole = ref('')
 const searchTerm = ref('')
 const showToast = ref(false)
 const toastMessage = ref('')
+
+// Group management modal
+const showGroupModal = ref(false)
+const selectedUser = ref(null)
+const availableGroups = ref([])
+const loadingGroups = ref(false)
 
 // Pagination
 const currentPage = ref(1)
@@ -452,6 +582,119 @@ const updateUserRole = async (user) => {
   }
 }
 
+// Group management functions
+const openGroupModal = async (user) => {
+  selectedUser.value = user
+  showGroupModal.value = true
+  loadingGroups.value = true
+
+  try {
+    const response = await $fetch('/api/admin/groups')
+    availableGroups.value = response.groups || []
+  } catch (error) {
+    console.error('Erreur lors du chargement des groupes:', error)
+    alert('Erreur lors du chargement des groupes')
+  } finally {
+    loadingGroups.value = false
+  }
+}
+
+const closeGroupModal = () => {
+  showGroupModal.value = false
+  selectedUser.value = null
+}
+
+const isGroupAssigned = (groupId) => {
+  if (!selectedUser.value || !selectedUser.value.teachingGroups) return false
+  return selectedUser.value.teachingGroups.some(g => g.id === groupId)
+}
+
+const toggleGroupAssignment = async (groupId) => {
+  if (!selectedUser.value) return
+
+  const isAssigned = isGroupAssigned(groupId)
+
+  try {
+    let response
+    if (isAssigned) {
+      // Remove group
+      response = await $fetch(`/api/admin/users/${selectedUser.value.id}/groups`, {
+        method: 'DELETE',
+        body: { groupId }
+      })
+      toastMessage.value = 'Groupe retiré avec succès'
+    } else {
+      // Add group
+      response = await $fetch(`/api/admin/users/${selectedUser.value.id}/groups`, {
+        method: 'POST',
+        body: { groupId }
+      })
+      toastMessage.value = 'Groupe assigné avec succès'
+    }
+
+    showToast.value = true
+    setTimeout(() => {
+      showToast.value = false
+    }, 3000)
+
+    // Update only the modified user in the list
+    if (response.user) {
+      const userIndex = users.value.findIndex(u => u.id === selectedUser.value.id)
+      if (userIndex !== -1) {
+        // Use splice to trigger reactivity
+        users.value.splice(userIndex, 1, response.user)
+      }
+
+      // Update filtered list as well
+      const filteredIndex = filteredUsers.value.findIndex(u => u.id === selectedUser.value.id)
+      if (filteredIndex !== -1) {
+        filteredUsers.value.splice(filteredIndex, 1, response.user)
+      }
+
+      // Update the selected user in the modal
+      selectedUser.value = response.user
+    }
+  } catch (error) {
+    console.error('Erreur lors de la modification du groupe:', error)
+    alert(error.data?.statusMessage || 'Erreur lors de la modification du groupe')
+  }
+}
+
+const removeGroupFromUser = async (user, groupId) => {
+  if (!confirm('Êtes-vous sûr de vouloir retirer ce groupe ?')) return
+
+  try {
+    const response = await $fetch(`/api/admin/users/${user.id}/groups`, {
+      method: 'DELETE',
+      body: { groupId }
+    })
+
+    toastMessage.value = 'Groupe retiré avec succès'
+    showToast.value = true
+    setTimeout(() => {
+      showToast.value = false
+    }, 3000)
+
+    // Update only the modified user in the list
+    if (response.user) {
+      const userIndex = users.value.findIndex(u => u.id === user.id)
+      if (userIndex !== -1) {
+        // Use splice to trigger reactivity
+        users.value.splice(userIndex, 1, response.user)
+      }
+
+      // Update filtered list as well
+      const filteredIndex = filteredUsers.value.findIndex(u => u.id === user.id)
+      if (filteredIndex !== -1) {
+        filteredUsers.value.splice(filteredIndex, 1, response.user)
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors du retrait du groupe:', error)
+    alert('Erreur lors du retrait du groupe')
+  }
+}
+
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
@@ -532,5 +775,21 @@ onMounted(() => {
 .custom-select option:checked {
   background-color: #f97316;
   color: white;
+}
+
+/* Modal transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from > div,
+.modal-leave-to > div {
+  transform: scale(0.9);
 }
 </style>
