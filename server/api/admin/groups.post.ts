@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
-import type { DanceGroup } from '~/types/database'
 
 const prisma = new PrismaClient()
 
@@ -18,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
     // Vérifier l'authentification et les droits admin
     const token = getCookie(event, 'auth-token') || getHeader(event, 'authorization')?.replace('Bearer ', '')
-    
+
     if (!token) {
       throw createError({
         statusCode: 401,
@@ -27,7 +26,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as { userId: number; email: string }
-    
+
     // Vérifier que l'utilisateur est admin
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId }
@@ -73,7 +72,7 @@ export default defineEventHandler(async (event) => {
 
   } catch (error: any) {
     console.error('Erreur lors de la création du groupe:', error)
-    
+
     throw createError({
       statusCode: error.statusCode || 500,
       statusMessage: error.statusMessage || 'Erreur lors de la création du groupe'

@@ -14,10 +14,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   roles     String   @default("user")
-  
+
   // Relations
   dancers        Dancer[]
   registrations  Registration[] @relation("ReviewedBy")
+  teachingGroups DanceGroup[]   @relation("TeacherGroups")
 
   @@map("users")
 }
@@ -38,7 +39,7 @@ model Dancer {
   otherInfo   String?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
-  
+
   // Relations
   user              User               @relation(fields: [userId], references: [id])
   emergencyContacts EmergencyContact[]
@@ -60,7 +61,7 @@ model EmergencyContact {
   relationship String
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
-  
+
   // Relations
   dancer Dancer @relation(fields: [dancerId], references: [id])
 
@@ -79,9 +80,10 @@ model DanceGroup {
   updatedAt   DateTime @updatedAt
   ageMax      Int?
   ageMin      Int?
-  
+
   // Relations
   registrations Registration[]
+  teachers      User[]         @relation("TeacherGroups")
 
   @@map("dance_groups")
 }
@@ -99,7 +101,7 @@ model Registration {
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
   schoolYear   String               @default("2024-2025")
-  
+
   // Relations
   dancer     Dancer     @relation(fields: [dancerId], references: [id])
   danceGroup DanceGroup @relation(fields: [danceGroupId], references: [id])
@@ -108,6 +110,7 @@ model Registration {
   @@index([danceGroupId], map: "registrations_danceGroupId_fkey")
   @@index([reviewedBy], map: "registrations_reviewedBy_fkey")
   @@index([schoolYear])
+  @@index([dancerId], map: "registrations_dancerId_fkey")
   @@map("registrations")
 }
 
@@ -125,7 +128,7 @@ model Guardian {
   authorized   Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+
   // Relations
   dancer Dancer @relation(fields: [dancerId], references: [id])
 

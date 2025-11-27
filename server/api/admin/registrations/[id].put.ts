@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
-import type { Registration } from '~/types/database'
 
 const prisma = new PrismaClient()
 

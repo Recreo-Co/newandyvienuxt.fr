@@ -1,9 +1,7 @@
 import bcrypt from 'bcryptjs'
-import { PrismaClient } from '@prisma/client'
 import { generateJWT } from '~/server/utils/auth'
 import { applyRateLimit } from '~/server/utils/rateLimiter'
-
-const prisma = new PrismaClient()
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   // Appliquer le rate limiting pour les tentatives de connexion

@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
-import type { RegistrationWithRelations } from '~/types/database'
 
 const prisma = new PrismaClient()
 
@@ -10,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
     if (!registrationId) {
       throw createError({
-        statusCode: 400,
+        statusCode: 400,  
         statusMessage: 'ID d\'inscription invalide'
       })
     }
