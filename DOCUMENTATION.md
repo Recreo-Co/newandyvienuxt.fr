@@ -67,8 +67,7 @@ newandyvienuxt.fr/
 │   └── middleware/
 │       └── auth.ts                   # Middleware d'authentification
 ├── prisma/
-│   ├── schema.prisma                 # Schéma de base de données
-│   └── seed.ts                       # Script de seeding
+│   └── schema.prisma                 # Schéma de base de données
 └── composables/
     └── useAuth.ts                    # Composable d'authentification
 ```
@@ -109,9 +108,6 @@ npx prisma db pull
 
 # Générer le client Prisma
 npx prisma generate
-
-# (Optionnel) Seed la base de données
-npx prisma db seed
 ```
 
 5. **Lancer l'application**
