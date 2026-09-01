@@ -1,4 +1,4 @@
-# Nuxt dev/build outputs
+# Sorties de build / dev Nuxt
 .output
 .data
 .nuxt
@@ -6,20 +6,36 @@
 .cache
 dist
 
-# Node dependencies
+# Dépendances
 node_modules
 
 # Logs
 logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Misc
-.DS_Store
-.fleet
-.idea
-
-# Local env files
+# Fichiers d'environnement locaux
 .env
 .env.*
 !.env.example
+
+# Caches d'outillage
+.eslintcache
+*.tsbuildinfo
+coverage
+
+# Config locale des éditeurs / agents
+.DS_Store
+.fleet
+.idea
+.vscode
+.claude/settings.local.json
+
+# Windows / OneDrive
+Thumbs.db
+desktop.ini
+
+# Divers
 *.php

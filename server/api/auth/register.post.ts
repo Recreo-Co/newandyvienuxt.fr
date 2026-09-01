@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from 'square630-prisma'
 import { generateJWT } from '~/server/utils/auth'
 import { applyRateLimit } from '~/server/utils/rateLimiter'
 import { validateEmail, validatePassword, sanitizeString } from '~/server/utils/validation'
