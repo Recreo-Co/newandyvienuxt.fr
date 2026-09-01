@@ -170,8 +170,9 @@ export default defineEventHandler(async (event) => {
 
     // Gérer les informations supplémentaires et notes médicales
     let medicalNotes = personalData.otherInfo || existingDancer.otherInfo || ''
-    if (healthData.healthStatus === 'positive') {
-      const newMedicalNote = `\n[RENOUVELLEMENT ${schoolYear} - CERTIFICAT MÉDICAL REQUIS - Déclaré le ${new Date().toISOString()}]`
+    const medicalNoteTag = `[RENOUVELLEMENT ${schoolYear} - CERTIFICAT MÉDICAL REQUIS`
+    if (healthData.healthStatus === 'positive' && !medicalNotes.includes(medicalNoteTag)) {
+      const newMedicalNote = `\n${medicalNoteTag} - Déclaré le ${new Date().toISOString()}]`
       medicalNotes += newMedicalNote
     }
     updatedDancerData.otherInfo = medicalNotes

@@ -36,7 +36,7 @@ model Dancer {
   phone       String
   schoolLevel dancers_schoolLevel
   tShirtSize  dancers_tShirtSize
-  otherInfo   String?
+  otherInfo   String?             @db.Text
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
