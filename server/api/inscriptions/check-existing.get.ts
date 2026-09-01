@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     const now = new Date()
     const year = now.getFullYear()
     const month = now.getMonth() + 1
-    const currentSchoolYear = month >= 9 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+    const currentSchoolYear = month >= 8 ? `${year}-${year + 1}` : `${year - 1}-${year}`
 
     // Vérifier si l'utilisateur a déjà une inscription COMPLETE pour l'année scolaire actuelle
     const existingDancer: any = await (prisma.dancer as any).findFirst({

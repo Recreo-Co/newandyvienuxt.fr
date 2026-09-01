@@ -216,7 +216,13 @@
                            type="date" 
                            class="mt-1 block w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
-                    <p v-else class="text-white mt-1">{{ formatDate(registration.dancer.birthDate) }}</p>
+                    <p v-else class="text-white mt-1">
+                      {{ formatDate(registration.dancer.birthDate) }}
+                      <span v-if="calculateAge(registration.dancer.birthDate) !== null"
+                            class="ml-2 text-orange-200/80 text-sm">
+                        ({{ calculateAge(registration.dancer.birthDate) }} ans)
+                      </span>
+                    </p>
                   </div>
                   <div>
                     <label class="text-xs font-medium text-orange-100/60 uppercase tracking-wide">Email</label>
@@ -269,20 +275,21 @@
                             class="mt-1 block w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     >
                       <option value="" class="text-gray-900">-- Sélectionner --</option>
+                      <option value="GS" class="text-gray-900">Grande Section</option>
                       <option value="CP" class="text-gray-900">CP</option>
                       <option value="CE1" class="text-gray-900">CE1</option>
                       <option value="CE2" class="text-gray-900">CE2</option>
                       <option value="CM1" class="text-gray-900">CM1</option>
                       <option value="CM2" class="text-gray-900">CM2</option>
-                      <option value="6ème" class="text-gray-900">6ème</option>
-                      <option value="5ème" class="text-gray-900">5ème</option>
-                      <option value="4ème" class="text-gray-900">4ème</option>
-                      <option value="3ème" class="text-gray-900">3ème</option>
-                      <option value="2nde" class="text-gray-900">2nde</option>
-                      <option value="1ère" class="text-gray-900">1ère</option>
-                      <option value="Terminale" class="text-gray-900">Terminale</option>
-                      <option value="Études supérieures" class="text-gray-900">Études supérieures</option>
-                      <option value="Adulte +25 ans" class="text-gray-900">Adulte +25 ans</option>
+                      <option value="SIXIEME" class="text-gray-900">6ème</option>
+                      <option value="CINQUIEME" class="text-gray-900">5ème</option>
+                      <option value="QUATRIEME" class="text-gray-900">4ème</option>
+                      <option value="TROISIEME" class="text-gray-900">3ème</option>
+                      <option value="SECONDE" class="text-gray-900">Seconde</option>
+                      <option value="PREMIERE" class="text-gray-900">Première</option>
+                      <option value="TERMINALE" class="text-gray-900">Terminale</option>
+                      <option value="POST_BAC" class="text-gray-900">Études supérieures</option>
+                      <option value="ADULTE" class="text-gray-900">Adulte +25 ans</option>
                     </select>
                     <p v-else class="text-white mt-1">{{ registration.dancer.schoolLevel || 'Non renseigné' }}</p>
                   </div>
@@ -869,7 +876,7 @@ const printRegistration = () => {
           <div>
             <div class="info-item">
               <span class="info-label">Date de naissance</span>
-              <div class="info-value">${formatDate(registration.value.dancer.birthDate)}</div>
+              <div class="info-value">${formatDate(registration.value.dancer.birthDate)}${calculateAge(registration.value.dancer.birthDate) !== null ? ' (' + calculateAge(registration.value.dancer.birthDate) + ' ans)' : ''}</div>
             </div>
             <div class="info-item">
               <span class="info-label">Email</span>
@@ -1039,6 +1046,21 @@ const formatDate = (date) => {
     month: 'long',
     day: 'numeric'
   })
+}
+
+// Âge révolu à la date du jour. On compare le mois puis le jour, sinon on
+// compterait une année en trop tant que l'anniversaire n'est pas passé.
+const calculateAge = (date) => {
+  if (!date) return null
+  const naissance = new Date(date)
+  if (isNaN(naissance.getTime())) return null
+  const aujourdhui = new Date()
+  let age = aujourdhui.getFullYear() - naissance.getFullYear()
+  const ecartMois = aujourdhui.getMonth() - naissance.getMonth()
+  if (ecartMois < 0 || (ecartMois === 0 && aujourdhui.getDate() < naissance.getDate())) {
+    age--
+  }
+  return age >= 0 ? age : null
 }
 
 const getStatusClass = (status) => {

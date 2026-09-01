@@ -1,6 +1,6 @@
 /**
  * Utilitaires pour gérer les années scolaires
- * Année scolaire : du 1er septembre au 31 août
+ * Année scolaire : bascule le 1er AOUT (ouverture des renouvellements)
  */
 
 /**
@@ -11,9 +11,9 @@ export function getCurrentSchoolYear(): string {
   const year = now.getFullYear()
   const month = now.getMonth() + 1 // getMonth() retourne 0-11
   
-  // Si nous sommes entre septembre (9) et décembre (12), l'année scolaire commence cette année
-  // Si nous sommes entre janvier (1) et août (8), l'année scolaire a commencé l'année précédente
-  if (month >= 9) {
+  // A partir d aout (8), l annee scolaire commence cette annee : la bascule a ete
+  // avancee de septembre a aout le 03/08/2026 pour ouvrir les renouvellements plus tot.
+  if (month >= 8) {
     return `${year}-${year + 1}`
   } else {
     return `${year - 1}-${year}`

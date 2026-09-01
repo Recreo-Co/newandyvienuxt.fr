@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
+import { getCurrentSchoolYear } from '../../../../utils/schoolYear'
 
 const prisma = new PrismaClient()
 
@@ -29,10 +30,15 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Récupérer tous les groupes de danse avec leurs statistiques
+    // Statistiques de la SAISON EN COURS uniquement (bascule au 1er août).
+    // Sans ce filtre, les effectifs cumulaient toutes les saisons depuis la
+    // création du groupe et ne voulaient plus rien dire.
+    const schoolYear = getCurrentSchoolYear()
+
     const groups = await prisma.danceGroup.findMany({
       include: {
         registrations: {
+          where: { schoolYear },
           include: {
             dancer: {
               include: {
@@ -120,6 +126,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
+      schoolYear,
       globalStats,
       groups: groupStats
     }

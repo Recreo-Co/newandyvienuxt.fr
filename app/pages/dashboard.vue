@@ -596,7 +596,7 @@ const getCurrentSchoolYear = () => {
   const now = new Date()
   const year = now.getFullYear()
   const month = now.getMonth() + 1
-  return month >= 9 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+  return month >= 8 ? `${year}-${year + 1}` : `${year - 1}-${year}`
 }
 
 const getNextSchoolYear = () => {

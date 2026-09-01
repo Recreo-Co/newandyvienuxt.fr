@@ -57,7 +57,16 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+      <!-- Les compteurs portent sur la SAISON EN COURS. Le rappeler evite de
+           croire a une perte de donnees quand ils chutent au 1er aout. -->
+      <div class="mb-3 sm:mb-4 flex items-center gap-2">
+        <span class="text-xs sm:text-sm text-orange-100/60">Chiffres de la saison</span>
+        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-500/25 text-orange-100 border border-orange-400/40">
+          {{ currentSchoolYear }}
+        </span>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
         <div class="bg-white/10 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20">
           <div class="flex items-center">
             <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-blue-500/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
@@ -110,6 +119,21 @@
             <div class="ml-2 sm:ml-3 lg:ml-4 min-w-0">
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-white truncate">{{ stats.rejected }}</p>
               <p class="text-orange-100/60 text-xs sm:text-sm">Rejetées</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Adherents de la saison precedente qui n'ont pas repris. -->
+        <div class="bg-white/10 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-orange-400/30">
+          <div class="flex items-center">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-orange-500/25 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </div>
+            <div class="ml-2 sm:ml-3 lg:ml-4 min-w-0">
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-white truncate">{{ stats.aRenouveler }}</p>
+              <p class="text-orange-100/60 text-xs sm:text-sm">À renouveler</p>
             </div>
           </div>
         </div>
@@ -213,8 +237,12 @@
                     <p class="text-xs text-orange-100/60 truncate">{{ registration.dancer.email }}</p>
                   </div>
                 </div>
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0" :class="getStatusClass(registration.status)">
-                  {{ registration.status === 'SUBMITTED' ? '⏳' : registration.status === 'APPROVED' ? '✅' : '❌' }}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 whitespace-nowrap"
+                      :class="getStatusClass(getDisplayStatus(registration))">
+                  <template v-if="getDisplayStatus(registration) === 'A_RENOUVELER'">🔄 À renouveler</template>
+                  <template v-else-if="registration.status === 'SUBMITTED'">⏳</template>
+                  <template v-else-if="registration.status === 'APPROVED'">✅</template>
+                  <template v-else>❌</template>
                 </span>
               </div>
               
@@ -261,6 +289,7 @@
                 <tr>
                   <th class="px-4 py-4 lg:px-6 lg:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Danseur</th>
                   <th class="px-4 py-4 lg:px-6 lg:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Groupe</th>
+                  <th class="px-4 py-4 lg:px-6 lg:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Saison</th>
                   <th class="px-4 py-4 lg:px-6 lg:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Statut</th>
                   <th class="hidden lg:table-cell px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Date</th>
                   <th class="px-4 py-4 lg:px-6 lg:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
@@ -288,9 +317,23 @@
                     <div class="text-xs text-orange-100/60">{{ registration.danceGroup.schedule }}</div>
                     <div v-if="registration.sportCode" class="text-xs text-orange-300">Sport: {{ registration.sportCode }}</div>
                   </td>
+                  <!-- Saison. Mise en avant de l'annee EN COURS : sans reperage
+                       visuel, les 241 inscriptions 2025-2026 et les nouvelles
+                       2026-2027 se confondent dans la liste. -->
                   <td class="px-4 py-4 lg:px-6 lg:py-4">
-                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="getStatusClass(registration.status)">
-                      {{ getStatusText(registration.status) }}
+                    <span
+                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap"
+                      :class="registration.schoolYear === currentSchoolYear
+                        ? 'bg-orange-500/25 text-orange-100 border border-orange-400/40'
+                        : 'bg-white/10 text-orange-100/60'"
+                    >
+                      {{ registration.schoolYear || '—' }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-4 lg:px-6 lg:py-4">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap"
+                          :class="getStatusClass(getDisplayStatus(registration))">
+                      {{ getStatusText(getDisplayStatus(registration)) }}
                     </span>
                   </td>
                   <td class="hidden lg:table-cell px-6 py-4 text-sm text-white">
@@ -406,7 +449,14 @@ definePageMeta({
   middleware: ['auth', 'admin']
 })
 
+import { getCurrentSchoolYear } from '../../../utils/schoolYear'
+
 const { logout } = useAuth()
+
+// Saison en cours, pour mettre en avant les inscriptions de l'annee courante
+// dans la colonne « Saison ». Source unique : utils/schoolYear.ts (bascule le
+// 1er aout).
+const currentSchoolYear = getCurrentSchoolYear()
 
 // State
 const registrations = ref([])
@@ -420,13 +470,26 @@ const currentPage = ref(1)
 const itemsPerPage = 10
 
 // Stats
+// Compteurs de la SAISON EN COURS uniquement. Sans ce filtre ils totalisaient
+// toutes les saisons depuis l'ouverture du site (246 inscriptions, dont 241
+// pour 2025-2026) : le tableau de bord decrivait l'historique, pas l'annee.
 const stats = computed(() => {
-  const total = registrations.value.length
-  const pending = registrations.value.filter(r => r.status === 'SUBMITTED').length
-  const approved = registrations.value.filter(r => r.status === 'APPROVED').length
-  const rejected = registrations.value.filter(r => r.status === 'REJECTED').length
-  
-  return { total, pending, approved, rejected }
+  const saison = registrations.value.filter(r => r.schoolYear === currentSchoolYear)
+  const total = saison.length
+  const pending = saison.filter(r => r.status === 'SUBMITTED').length
+  const approved = saison.filter(r => r.status === 'APPROVED').length
+  const rejected = saison.filter(r => r.status === 'REJECTED').length
+
+  // Adherents de la saison PRECEDENTE qui n'ont pas repris cette annee.
+  // Meme regle que la colonne Statut : un renouvellement rejete ne compte pas.
+  const aRenouveler = registrations.value.filter(
+    r => r.status === 'APPROVED' &&
+         r.schoolYear &&
+         r.schoolYear !== currentSchoolYear &&
+         !danseursAJour.value.has(r.dancer?.id ?? r.dancerId)
+  ).length
+
+  return { total, pending, approved, rejected, aRenouveler }
 })
 
 // Pagination computed
@@ -562,6 +625,8 @@ const getStatusClass = (status) => {
       return 'bg-green-500/20 text-green-300'
     case 'REJECTED':
       return 'bg-red-500/20 text-red-300'
+    case 'A_RENOUVELER':
+      return 'bg-orange-500/25 text-orange-200 border border-orange-400/40'
     default:
       return 'bg-gray-500/20 text-gray-300'
   }
@@ -575,9 +640,52 @@ const getStatusText = (status) => {
       return 'Approuvée'
     case 'REJECTED':
       return 'Rejetée'
+    case 'A_RENOUVELER':
+      return 'À renouveler'
     default:
       return status
   }
+}
+
+// ---------------------------------------------------------------------------
+// Statut AFFICHE. Purement visuel : la base conserve APPROVED, on ne modifie
+// jamais le statut reel.
+//
+// Une inscription approuvee pour une saison PASSEE n'est plus valable pour la
+// saison en cours. On l'affiche donc « A renouveler » — mais seulement tant que
+// l'adherent n'a pas repris d'inscription cette annee, sinon on afficherait une
+// alerte sur quelqu'un qui a deja fait le necessaire.
+// ---------------------------------------------------------------------------
+
+/**
+ * Danseurs ayant DEJA une inscription VALABLE pour la saison en cours.
+ *
+ * Seuls SUBMITTED et APPROVED comptent : un renouvellement REJETE n'est pas un
+ * renouvellement, l'adherent doit resoumettre. C'est exactement la regle
+ * qu'applique deja le tableau de bord des adherents pour decider d'afficher le
+ * bouton de renouvellement (`showRenewalOption` dans app/pages/dashboard.vue).
+ */
+const danseursAJour = computed(() => {
+  const ids = new Set()
+  for (const r of registrations.value) {
+    if (r.schoolYear === currentSchoolYear && ['SUBMITTED', 'APPROVED'].includes(r.status)) {
+      const id = r.dancer?.id ?? r.dancerId
+      if (id != null) ids.add(id)
+    }
+  }
+  return ids
+})
+
+const getDisplayStatus = (registration) => {
+  if (
+    registration.status === 'APPROVED' &&
+    registration.schoolYear &&
+    registration.schoolYear !== currentSchoolYear &&
+    !danseursAJour.value.has(registration.dancer?.id ?? registration.dancerId)
+  ) {
+    return 'A_RENOUVELER'
+  }
+  return registration.status
 }
 
 const formatDate = (dateString) => {

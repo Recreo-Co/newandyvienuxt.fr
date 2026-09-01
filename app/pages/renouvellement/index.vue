@@ -158,6 +158,7 @@
                   <label class="block text-sm font-medium text-gray-700 mb-1">Niveau scolaire *</label>
                   <select v-model="editForm.schoolLevel" class="custom-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
                     <option value="">Sélectionner...</option>
+                    <option value="GS">Grande Section</option>
                     <option value="CP">CP</option>
                     <option value="CE1">CE1</option>
                     <option value="CE2">CE2</option>
@@ -177,13 +178,27 @@
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Taille T-shirt *</label>
                   <select v-model="editForm.tShirtSize" class="custom-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" required>
+                    <!-- Liste ALIGNEE sur celle de l'inscription initiale
+                         (app/pages/inscription/step-1.vue). Il manquait les 6
+                         tailles enfant, XXS et XXXL : 68 danseurs sur 200 ne
+                         retrouvaient pas leur taille, et le champ etant
+                         `required`, ils etaient contraints d'en choisir une
+                         autre — leur taille changeait a leur insu. -->
                     <option value="">Sélectionner...</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="10">10</option>
+                    <option value="12">12</option>
+                    <option value="14">14</option>
+                    <option value="16">16</option>
+                    <option value="XXS">XXS</option>
                     <option value="XS">XS</option>
                     <option value="S">S</option>
                     <option value="M">M</option>
                     <option value="L">L</option>
                     <option value="XL">XL</option>
                     <option value="XXL">XXL</option>
+                    <option value="XXXL">XXXL</option>
                   </select>
                 </div>
                 <div class="md:col-span-2">
@@ -477,6 +492,30 @@
                 </p>
               </div>
             </div>
+
+            <!-- Code Pass'Sport — facultatif, comme a l'inscription initiale. -->
+            <div class="bg-white/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 mt-6">
+              <h3 class="text-lg font-bold text-gray-900 mb-2">Code Pass'Sport</h3>
+              <p class="text-sm text-gray-600 mb-4">
+                Si tu bénéficies du Pass'Sport, saisis ton code ici. Ce champ est facultatif&nbsp;:
+                tu peux continuer sans le remplir.
+              </p>
+              <label class="block text-gray-700 text-sm font-semibold mb-2" for="renouvellement-sportcode">
+                Ton code Pass'Sport
+              </label>
+              <input
+                id="renouvellement-sportcode"
+                v-model="sportCode"
+                type="text"
+                placeholder="Entre ton code sport si tu en as un"
+                class="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-colors"
+              />
+              <div v-if="sportCode" class="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                <p class="text-green-700 text-sm font-medium">
+                  ✓ Code Pass'Sport enregistré : {{ sportCode }}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div class="flex justify-between mt-8">
@@ -690,6 +729,9 @@ const healthForm = ref({
   healthDeclaration: false
 })
 
+// Code Pass'Sport. Facultatif, comme a l'inscription initiale.
+const sportCode = ref('')
+
 const selectedGroups = ref([])
 
 // Emergency contacts edit form
@@ -772,6 +814,9 @@ const loadData = async () => {
       guardianData.value = renewalData.guardian
       emergencyContacts.value = renewalData.emergencyContacts
       previousDanceGroups.value = renewalData.previousDanceGroups
+      // Pre-remplir le code Pass'Sport de l'annee precedente : sans ca il
+      // serait ecrase a null au renouvellement (cf. renew-complete.post.ts).
+      sportCode.value = renewalData.previousSportCode || ''
 
       console.log('Dancer data loaded:', dancerData.value)
 
@@ -1002,6 +1047,9 @@ const submitRenewal = async () => {
         guardianData: guardianDataToSend,
         emergencyContacts: emergencyContactsToSend,
         healthData: healthForm.value,
+        // Attendu par renew-complete.post.ts, qui ecrivait null tant que la
+        // page ne l'envoyait pas — et effacait donc le code a chaque renouvellement.
+        sportCodeData: { sportCode: sportCode.value?.trim() || null },
         selectedGroups: selectedGroups.value.map(g => ({
           id: g.id,
           name: g.name,

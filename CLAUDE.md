@@ -61,6 +61,20 @@ types/                # TypeScript type definitions
 - Auth composable at `app/composables/useAuth.ts` manages authentication state
 - Uses cookies for token and user data persistence
 
+### Password Reset
+- Pages: `/forgot-password` (demande) et `/reset-password?token=...` (nouveau mot de passe)
+- Endpoints: `POST /api/auth/forgot-password`, `GET /api/auth/verify-reset-token`, `POST /api/auth/reset-password`
+- Table `password_reset_tokens` : seul le **hash SHA-256** du token est stocké, le token en clair ne circule que dans l'email
+- Lien valable **1 heure**, à usage unique ; une nouvelle demande invalide les liens précédents
+- `/api/auth/forgot-password` répond **toujours** la même chose (compte existant ou non, panne SMTP incluse) pour ne pas permettre d'énumérer les comptes — en cas d'échec d'envoi, l'erreur part dans les logs PM2
+- Rate limiting : 5 demandes/heure/IP, 10 validations de token/15 min/IP (`server/utils/rateLimiter.ts`)
+- Le nouveau mot de passe passe par `validatePassword()` — attention, les mots de passe commençant par `test`, `admin`, `password`, `azerty`, `qwerty` sont refusés
+
+### Pièges connus
+- **L'alias `~/` pointe sur `app/`, pas sur la racine.** `import ... from '~/server/utils/x'` résout donc vers `app/server/utils/x.ts` (le dossier dupliqué), pas vers `server/utils/x.ts` qui est celui réellement utilisé par Nitro. Pour les fichiers de `server/`, utiliser des **imports relatifs** (`../../utils/x`).
+- Les tables MySQL sont en **MyISAM** : aucune clé étrangère possible, les relations Prisma sont purement applicatives.
+- `prisma migrate status` est désynchronisé (migrations jamais enregistrées) — appliquer les migrations à la main avec `mysql < prisma/migrations/<dossier>/migration.sql`, puis `npx prisma generate`.
+
 ### Database Schema
 Main entities in MySQL database:
 - **User**: Authentication and admin users
@@ -82,6 +96,9 @@ Located in `app/pages/inscription/`:
 Required environment variables:
 - `DATABASE_URL`: MySQL connection string
 - `JWT_SECRET`: Secret key for JWT token signing
+- `APP_URL`: URL publique du site (construction des liens de réinitialisation) — `https://square630.andyvie.fr`
+- `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS`: envoi des emails (boîte OVH mutualisée `contact@recreo.fr`)
+- `EMAIL_FROM` / `EMAIL_FROM_NAME`: expéditeur affiché (`Square630 <contact@recreo.fr>`)
 
 ### Development Notes
 - French language used throughout (error messages, UI text, comments)

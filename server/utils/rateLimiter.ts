@@ -16,13 +16,30 @@ const registerLimiter = new RateLimiterMemory({
   blockDuration: 3600, // bloquer pour 1 heure
 })
 
+const forgotPasswordLimiter = new RateLimiterMemory({
+  keyPrefix: 'forgot-password',
+  points: 5, // 5 demandes de réinitialisation
+  duration: 3600, // par heure
+  blockDuration: 3600, // bloquer pour 1 heure
+})
+
+const resetPasswordLimiter = new RateLimiterMemory({
+  keyPrefix: 'reset-password',
+  points: 10, // 10 tentatives de validation de token
+  duration: 900, // par 15 minutes
+  blockDuration: 900, // bloquer pour 15 minutes
+})
+
 const generalLimiter = new RateLimiterMemory({
   keyPrefix: 'general',
   points: 100, // 100 requêtes
   duration: 60, // par minute
 })
 
-export async function applyRateLimit(event: H3Event, type: 'login' | 'register' | 'general' = 'general') {
+export async function applyRateLimit(
+  event: H3Event,
+  type: 'login' | 'register' | 'forgot-password' | 'reset-password' | 'general' = 'general'
+) {
   const ip = getClientIP(event) || 'unknown'
   
   let limiter
@@ -32,6 +49,12 @@ export async function applyRateLimit(event: H3Event, type: 'login' | 'register' 
       break
     case 'register':
       limiter = registerLimiter
+      break
+    case 'forgot-password':
+      limiter = forgotPasswordLimiter
+      break
+    case 'reset-password':
+      limiter = resetPasswordLimiter
       break
     default:
       limiter = generalLimiter

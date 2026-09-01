@@ -223,6 +223,14 @@
                   + Assigner un groupe
                 </button>
               </div>
+
+              <!-- Groupes de danse (adhérents) -->
+              <div v-if="user.roles === 'user'" class="pt-3 border-t border-white/10">
+                <label class="block text-xs text-white mb-2">Groupes de danse</label>
+                <button @click="openAdherentModal(user)" class="w-full bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 px-3 py-2 rounded-lg transition-colors text-xs">
+                  Gérer les groupes de danse
+                </button>
+              </div>
             </div>
           </div>
 
@@ -297,6 +305,16 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                       </svg>
                       Gérer
+                    </button>
+                    <button
+                      v-else-if="user.roles === 'user'"
+                      @click="openAdherentModal(user)"
+                      class="bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 px-3 py-1 rounded-lg transition-colors text-xs inline-flex items-center"
+                    >
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                      </svg>
+                      Groupes
                     </button>
                     <span v-else class="text-orange-100/60 text-xs">-</span>
                   </td>
@@ -445,6 +463,114 @@
           </div>
         </div>
       </Transition>
+
+      <!-- ================================================================
+           Fenetre : groupes de danse d'un ADHERENT.
+           Manipule des `Registration` (danseur, groupe, annee scolaire),
+           contrairement a la fenetre des professeurs juste au-dessus qui
+           gere la relation `TeacherGroups`. Ne jamais confondre les deux.
+           ================================================================ -->
+      <Transition name="fade">
+        <div v-if="showAdherentModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div class="bg-gradient-to-br from-orange-900 to-red-900 rounded-2xl border border-white/20 w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
+
+            <div class="p-4 sm:p-6 border-b border-white/10">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-bold text-white">Groupes de danse</h3>
+                  <p class="text-sm text-orange-100/70 mt-1">
+                    <span v-if="adherentDancer">{{ adherentDancer.firstName }} {{ adherentDancer.lastName }} · </span>
+                    <span>{{ selectedAdherent?.email }}</span>
+                  </p>
+                  <p v-if="adherentSchoolYear" class="text-xs text-orange-100/50 mt-1">
+                    Année scolaire {{ adherentSchoolYear }}
+                  </p>
+                </div>
+                <button @click="closeAdherentModal" class="text-white/60 hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="p-4 sm:p-6 overflow-y-auto flex-1">
+              <div v-if="loadingAdherent" class="text-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+                <p class="text-white/60">Chargement...</p>
+              </div>
+
+              <div v-else-if="adherentError" class="bg-red-500/15 border border-red-400/30 rounded-lg p-4">
+                <p class="text-red-200 text-sm">{{ adherentError }}</p>
+              </div>
+
+              <div v-else class="space-y-6">
+                <!-- Inscriptions en cours -->
+                <div>
+                  <h4 class="text-sm font-semibold text-white mb-3">
+                    Inscrit dans {{ adherentRegistrations.length }} groupe(s)
+                  </h4>
+                  <p v-if="adherentRegistrations.length === 0" class="text-orange-100/60 text-sm">
+                    Aucune inscription pour cette année scolaire.
+                  </p>
+                  <div v-for="reg in adherentRegistrations" :key="reg.id"
+                       class="bg-white/10 rounded-lg p-3 mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="text-white font-medium truncate">{{ reg.danceGroup.name }}</p>
+                      <p class="text-xs text-orange-100/60">
+                        {{ reg.danceGroup.ageGroup }} · {{ reg.danceGroup.schedule }} · {{ reg.status }}
+                      </p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                      <select
+                        class="custom-select bg-white/15 text-white text-xs rounded-lg px-2 py-1 border border-white/25"
+                        @change="deplacerAdherent(reg.danceGroup.id, $event.target.value); $event.target.value = ''"
+                      >
+                        <option value="">Déplacer vers…</option>
+                        <option v-for="g in availableGroups" :key="g.id" :value="g.id"
+                                :disabled="isAdherentInGroup(g.id)">
+                          {{ g.name }}
+                        </option>
+                      </select>
+                      <button @click="toggleAdherentGroup(reg.danceGroup.id)"
+                              class="text-red-300 hover:text-red-100 text-xs px-2 py-1 rounded-lg hover:bg-red-500/20 transition-colors">
+                        Retirer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Ajout -->
+                <div v-if="adherentDancer">
+                  <h4 class="text-sm font-semibold text-white mb-3">Ajouter à un groupe</h4>
+                  <div class="space-y-2">
+                    <button
+                      v-for="g in availableGroups.filter(g => !isAdherentInGroup(g.id))"
+                      :key="g.id"
+                      @click="toggleAdherentGroup(g.id)"
+                      class="w-full text-left bg-white/5 hover:bg-white/15 border border-white/10 rounded-lg p-3 transition-colors"
+                    >
+                      <p class="text-white text-sm font-medium">{{ g.name }}</p>
+                      <p class="text-xs text-orange-100/60">{{ g.ageGroup }} · {{ g.schedule }}</p>
+                    </button>
+                    <p v-if="availableGroups.filter(g => !isAdherentInGroup(g.id)).length === 0"
+                       class="text-orange-100/60 text-sm">
+                      L'adhérent est déjà inscrit dans tous les groupes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 sm:p-6 border-t border-white/10">
+              <button @click="closeAdherentModal"
+                      class="w-full bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors">
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -470,6 +596,18 @@ const showGroupModal = ref(false)
 const selectedUser = ref(null)
 const availableGroups = ref([])
 const loadingGroups = ref(false)
+
+// Groupes de danse des ADHERENTS (roles === 'user').
+// A ne pas confondre avec la fenetre ci-dessus, reservee aux PROFESSEURS :
+// celle-ci manipule des `Registration` (danseur, groupe, annee scolaire),
+// l'autre la relation `TeacherGroups`. Deux mecanismes distincts.
+const showAdherentModal = ref(false)
+const selectedAdherent = ref(null)
+const adherentRegistrations = ref([])
+const adherentSchoolYear = ref('')
+const adherentDancer = ref(null)
+const loadingAdherent = ref(false)
+const adherentError = ref('')
 
 // Pagination
 const currentPage = ref(1)
@@ -602,6 +740,96 @@ const openGroupModal = async (user) => {
 const closeGroupModal = () => {
   showGroupModal.value = false
   selectedUser.value = null
+}
+
+// ---------------------------------------------------------------------------
+// Groupes de danse des adherents
+// ---------------------------------------------------------------------------
+
+const openAdherentModal = async (user) => {
+  selectedAdherent.value = user
+  showAdherentModal.value = true
+  loadingAdherent.value = true
+  adherentError.value = ''
+  adherentRegistrations.value = []
+  adherentDancer.value = null
+
+  try {
+    const [inscriptions, groupes] = await Promise.all([
+      $fetch(`/api/admin/users/${user.id}/registrations`),
+      availableGroups.value.length ? Promise.resolve(null) : $fetch('/api/admin/groups')
+    ])
+    if (groupes) availableGroups.value = groupes.groups || []
+    adherentRegistrations.value = inscriptions.registrations || []
+    adherentSchoolYear.value = inscriptions.schoolYear || ''
+    adherentDancer.value = inscriptions.dancer
+    if (!inscriptions.dancer) {
+      adherentError.value = "Ce compte n'a pas de fiche danseur : l'inscription n'a jamais été terminée."
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des inscriptions:', error)
+    adherentError.value = error.data?.statusMessage || 'Erreur lors du chargement'
+  } finally {
+    loadingAdherent.value = false
+  }
+}
+
+const closeAdherentModal = () => {
+  showAdherentModal.value = false
+  selectedAdherent.value = null
+  adherentRegistrations.value = []
+  adherentError.value = ''
+}
+
+const isAdherentInGroup = (groupId) => {
+  return adherentRegistrations.value.some(r => r.danceGroup?.id === groupId)
+}
+
+const rechargerAdherent = async () => {
+  const reponse = await $fetch(`/api/admin/users/${selectedAdherent.value.id}/registrations`)
+  adherentRegistrations.value = reponse.registrations || []
+  adherentSchoolYear.value = reponse.schoolYear || ''
+}
+
+const notifier = (message) => {
+  toastMessage.value = message
+  showToast.value = true
+  setTimeout(() => { showToast.value = false }, 3000)
+}
+
+const toggleAdherentGroup = async (groupId) => {
+  if (!selectedAdherent.value || !adherentDancer.value) return
+  const inscrit = isAdherentInGroup(groupId)
+
+  if (inscrit && !confirm('Retirer cet adhérent du groupe pour cette année ?')) return
+
+  try {
+    await $fetch(`/api/admin/users/${selectedAdherent.value.id}/registrations`, {
+      method: inscrit ? 'DELETE' : 'POST',
+      body: { groupId }
+    })
+    await rechargerAdherent()
+    notifier(inscrit ? 'Adhérent retiré du groupe' : 'Adhérent inscrit dans le groupe')
+  } catch (error) {
+    console.error('Erreur:', error)
+    alert(error.data?.statusMessage || 'Erreur lors de la modification')
+  }
+}
+
+/** Deplace l'adherent d'un groupe vers un autre en conservant sa ligne. */
+const deplacerAdherent = async (fromGroupId, groupId) => {
+  if (!groupId || fromGroupId === groupId) return
+  try {
+    await $fetch(`/api/admin/users/${selectedAdherent.value.id}/registrations`, {
+      method: 'POST',
+      body: { groupId: parseInt(groupId), fromGroupId }
+    })
+    await rechargerAdherent()
+    notifier('Adhérent déplacé de groupe')
+  } catch (error) {
+    console.error('Erreur:', error)
+    alert(error.data?.statusMessage || 'Erreur lors du déplacement')
+  }
 }
 
 const isGroupAssigned = (groupId) => {

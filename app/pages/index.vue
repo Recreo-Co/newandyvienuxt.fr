@@ -110,6 +110,18 @@
                 </div>
               </div>
 
+              <!-- Forgot Password Link -->
+              <div class="flex justify-end -mt-2">
+                <button
+                  type="button"
+                  @click="goToForgotPassword"
+                  :disabled="loading"
+                  class="text-sm font-semibold text-slate-500 hover:text-orange-700 transition-colors disabled:opacity-50"
+                >
+                  Mot de passe oublié ?
+                </button>
+              </div>
+
               <!-- Error Alert -->
               <div v-if="error" class="bg-red-50 border border-red-200 p-4 rounded-xl">
                 <div class="flex items-center">
@@ -203,6 +215,10 @@ const error = ref('')
 
 const goToRegister = () => {
   navigateTo('/register')
+}
+
+const goToForgotPassword = () => {
+  navigateTo('/forgot-password')
 }
 
 const handleLogin = async () => {

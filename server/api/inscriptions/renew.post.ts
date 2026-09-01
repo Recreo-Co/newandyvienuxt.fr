@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     const now = new Date()
     const year = now.getFullYear()
     const month = now.getMonth() + 1
-    const currentSchoolYear = month >= 9 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+    const currentSchoolYear = month >= 8 ? `${year}-${year + 1}` : `${year - 1}-${year}`
     const nextSchoolYear = `${parseInt(currentSchoolYear.split('-')[0]) + 1}-${parseInt(currentSchoolYear.split('-')[1]) + 1}`
 
     // Vérifier que l'année demandée est valide (actuelle ou suivante)
@@ -138,6 +138,9 @@ export default defineEventHandler(async (event) => {
         relationship: contact.relationship,
         type: contact.type
       })),
+      // Code Pass'Sport de la derniere inscription qui en portait un. Sans ca,
+      // le renouvellement repartirait a vide et ecraserait le code existant.
+      previousSportCode: dancer.registrations.find(reg => reg.sportCode)?.sportCode || null,
       previousDanceGroups: dancer.registrations.map(reg => ({
         id: reg.danceGroup.id,
         name: reg.danceGroup.name,

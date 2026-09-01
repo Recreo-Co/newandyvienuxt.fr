@@ -467,6 +467,7 @@
               required
             >
               <option value="">Sélectionne le niveau du danseur</option>
+              <option value="GS">Grande Section</option>
               <option value="CP">CP</option>
               <option value="CE1">CE1</option>
               <option value="CE2">CE2</option>
