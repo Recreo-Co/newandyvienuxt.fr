@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from 'square630-prisma'
 import jwt from 'jsonwebtoken'
 
 const prisma = new PrismaClient()

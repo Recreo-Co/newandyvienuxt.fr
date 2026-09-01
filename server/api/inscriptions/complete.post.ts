@@ -1,7 +1,7 @@
-import { dancers_schoolLevel, dancers_tShirtSize, PrismaClient } from '@prisma/client'
+import { dancers_tShirtSize } from 'square630-prisma'
+import type { dancers_schoolLevel } from 'square630-prisma'
 import jwt from 'jsonwebtoken'
-
-const prisma = new PrismaClient()
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -56,27 +56,6 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 409,
         statusMessage: `Vous avez déjà une inscription ${statusText}. Un seul dossier actif par utilisateur est autorisé.`
-      })
-    }
-
-    // Supprimer les inscriptions DRAFT existantes pour ce user (permet de recommencer)
-    const existingDraftDancer = await prisma.dancer.findFirst({
-      where: { userId: userId }
-    })
-
-    if (existingDraftDancer) {
-      // Supprimer toutes les données liées en cascade
-      await prisma.registration.deleteMany({
-        where: { dancerId: existingDraftDancer.id }
-      })
-      await prisma.emergencyContact.deleteMany({
-        where: { dancerId: existingDraftDancer.id }
-      })
-      await prisma.guardian.deleteMany({
-        where: { dancerId: existingDraftDancer.id }
-      })
-      await prisma.dancer.delete({
-        where: { id: existingDraftDancer.id }
       })
     }
 
@@ -178,107 +157,127 @@ export default defineEventHandler(async (event) => {
       enumValues: Object.values(dancers_tShirtSize)
     })
     
-    const dancer = await prisma.dancer.create({
-      data: {
-        userId: userId,
-        email: step1.email || userEmail,
-        firstName: step1.firstName,
-        lastName: step1.lastName,
-        birthDate: new Date(step1.birthDate),
-        address: step1.address,
-        postalCode: step1.postalCode,
-        city: step1.city || 'Non spécifié',
-        phone: step1.phone,
-        schoolLevel: convertSchoolLevel(step1.schoolLevel || 'ADULTE') as dancers_schoolLevel,
-        tShirtSize: convertedTShirtSize,
-        otherInfo: step1.otherInfo || null,
-      }
-    })
-
-    // Stocker le statut de santé dans otherInfo ou une note
-    if (health.requiresCertificate) {
-      // Mettre à jour le danseur pour noter qu'un certificat médical est requis
-      await prisma.dancer.update({
-        where: { id: dancer.id },
-        data: {
-          otherInfo: (dancer.otherInfo || '') + '\n[CERTIFICAT MÉDICAL REQUIS - Déclaré le ' + new Date().toISOString() + ']'
-        }
+    // Toutes les écritures sont regroupées dans une seule transaction : si une
+    // étape échoue, rien n'est écrit. Sans ça, un échec en cours de route laissait
+    // un danseur créé sans inscription. Nécessite InnoDB (MyISAM ignore les
+    // transactions en silence).
+    const dancer = await prisma.$transaction(async (tx) => {
+      // Supprimer le dossier existant pour ce user (permet de recommencer)
+      const existingDraftDancer = await tx.dancer.findFirst({
+        where: { userId: userId }
       })
-    }
 
-    // 2. Créer le responsable légal si mineur
-    if (step2 && step2.guardianEmail) {
-      await prisma.guardian.create({
+      if (existingDraftDancer) {
+        // Supprimer toutes les données liées, enfants avant parent
+        await tx.registration.deleteMany({
+          where: { dancerId: existingDraftDancer.id }
+        })
+        await tx.emergencyContact.deleteMany({
+          where: { dancerId: existingDraftDancer.id }
+        })
+        await tx.guardian.deleteMany({
+          where: { dancerId: existingDraftDancer.id }
+        })
+        await tx.dancer.delete({
+          where: { id: existingDraftDancer.id }
+        })
+      }
+
+      // 1. Créer le danseur. La note de certificat médical est intégrée dès la
+      // création plutôt que par un update séparé.
+      const baseOtherInfo = step1.otherInfo || null
+      const createdDancer = await tx.dancer.create({
         data: {
-          dancerId: dancer.id,
-          email: step2.guardianEmail,
-          firstName: step2.guardianFirstName || 'Non spécifié',
-          lastName: step2.guardianLastName || 'Non spécifié',
+          userId: userId,
+          email: step1.email || userEmail,
+          firstName: step1.firstName,
+          lastName: step1.lastName,
+          birthDate: new Date(step1.birthDate),
           address: step1.address,
           postalCode: step1.postalCode,
           city: step1.city || 'Non spécifié',
           phone: step1.phone,
-          authorized: step2.guardianAuthorized || false,
-          relationship: step2.guardianRelationship || 'Parent'
+          schoolLevel: convertSchoolLevel(step1.schoolLevel || 'ADULTE') as dancers_schoolLevel,
+          tShirtSize: convertedTShirtSize,
+          otherInfo: health.requiresCertificate
+            ? (baseOtherInfo || '') + '\n[CERTIFICAT MÉDICAL REQUIS - Déclaré le ' + new Date().toISOString() + ']'
+            : baseOtherInfo,
         }
       })
-    }
 
-    // 3. Créer les contacts d'urgence
-    console.log('step3 data:', step3)
-    console.log('step3.emergencyContacts:', step3?.emergencyContacts)
-    if (step3 && step3.emergencyContacts && step3.emergencyContacts.length > 0) {
-      console.log('Creating', step3.emergencyContacts.length, 'emergency contacts')
-      for (const contact of step3.emergencyContacts) {
-        await prisma.emergencyContact.create({
+      // 2. Créer le responsable légal si mineur
+      if (step2 && step2.guardianEmail) {
+        await tx.guardian.create({
           data: {
-            dancerId: dancer.id,
-            type: contact.type || 'EMERGENCY_ONLY', // Utiliser le type fourni
-            firstName: contact.firstName || '',
-            lastName: contact.lastName || '',
-            phone: contact.phone,
-            relationship: contact.relationship || 'Proche'
+            dancerId: createdDancer.id,
+            email: step2.guardianEmail,
+            firstName: step2.guardianFirstName || 'Non spécifié',
+            lastName: step2.guardianLastName || 'Non spécifié',
+            address: step1.address,
+            postalCode: step1.postalCode,
+            city: step1.city || 'Non spécifié',
+            phone: step1.phone,
+            authorized: step2.guardianAuthorized || false,
+            relationship: step2.guardianRelationship || 'Parent'
           }
         })
       }
-    }
 
-    // 4. Créer les inscriptions aux groupes de danse
-    if (step4 && step4.selectedDanceGroups && step4.selectedDanceGroups.length > 0) {
-      for (const group of step4.selectedDanceGroups) {
-        // Vérifier si le groupe existe, sinon le créer
-        let danceGroup = await prisma.danceGroup.findFirst({
-          where: { name: group.name }
-        })
-
-        if (!danceGroup) {
-          danceGroup = await prisma.danceGroup.create({
+      // 3. Créer les contacts d'urgence
+      if (step3 && step3.emergencyContacts && step3.emergencyContacts.length > 0) {
+        for (const contact of step3.emergencyContacts) {
+          await tx.emergencyContact.create({
             data: {
-              name: group.name,
-              ageGroup: group.ageGroup,
-              schedule: group.schedule,
-              description: group.description || '',
-              isActive: true
+              dancerId: createdDancer.id,
+              type: contact.type || 'EMERGENCY_ONLY', // Utiliser le type fourni
+              firstName: contact.firstName || '',
+              lastName: contact.lastName || '',
+              phone: contact.phone,
+              relationship: contact.relationship || 'Proche'
             }
           })
         }
-
-        // Créer l'inscription
-        await prisma.registration.create({
-          data: {
-            dancerId: dancer.id,
-            danceGroupId: danceGroup.id,
-            schoolYear: currentSchoolYear, // Ajouter l'année scolaire
-            sportCode: sportcode?.sportCode || null,
-            status: 'SUBMITTED', // Marquer comme SUBMITTED car l'inscription est complète
-            submittedAt: new Date(),
-            reviewedAt: null,
-            reviewedBy: null,
-            notes: null
-          }
-        })
       }
-    }
+
+      // 4. Créer les inscriptions aux groupes de danse
+      if (step4 && step4.selectedDanceGroups && step4.selectedDanceGroups.length > 0) {
+        for (const group of step4.selectedDanceGroups) {
+          // Vérifier si le groupe existe, sinon le créer
+          let danceGroup = await tx.danceGroup.findFirst({
+            where: { name: group.name }
+          })
+
+          if (!danceGroup) {
+            danceGroup = await tx.danceGroup.create({
+              data: {
+                name: group.name,
+                ageGroup: group.ageGroup,
+                schedule: group.schedule,
+                description: group.description || '',
+                isActive: true
+              }
+            })
+          }
+
+          // Créer l'inscription
+          await tx.registration.create({
+            data: {
+              dancerId: createdDancer.id,
+              danceGroupId: danceGroup.id,
+              schoolYear: currentSchoolYear, // Ajouter l'année scolaire
+              sportCode: sportcode?.sportCode || null,
+              status: 'SUBMITTED', // Marquer comme SUBMITTED car l'inscription est complète
+              submittedAt: new Date(),
+              reviewedAt: null,
+              reviewedBy: null,
+              notes: null
+            }
+          })
+        }
+      }
+
+      return createdDancer
+    }, { maxWait: 10000, timeout: 20000 })
 
     return {
       success: true,
@@ -293,7 +292,5 @@ export default defineEventHandler(async (event) => {
       statusCode: error.statusCode || 500,
       statusMessage: error.message || 'Erreur lors de la sauvegarde de l\'inscription'
     })
-  } finally {
-    await prisma.$disconnect()
   }
 })

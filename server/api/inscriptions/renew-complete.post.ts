@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
-
-const prisma = new PrismaClient()
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -177,128 +175,140 @@ export default defineEventHandler(async (event) => {
     }
     updatedDancerData.otherInfo = medicalNotes
 
-    // Mettre à jour le danseur
-    const updatedDancer = await prisma.dancer.update({
-      where: { id: existingDancer.id },
-      data: updatedDancerData
-    })
+    // Toutes les écritures sont regroupées dans une seule transaction : si une
+    // étape échoue, rien n'est écrit. Nécessite InnoDB (MyISAM ignore les
+    // transactions en silence).
+    const journal = await prisma.$transaction(async (tx) => {
+      const lignes: string[] = []
 
-    // Mettre à jour les informations du responsable légal si nécessaire
-    if (guardianData) {
-      const existingGuardian = await prisma.guardian.findFirst({
-        where: { dancerId: existingDancer.id }
+      // Mettre à jour le danseur
+      await tx.dancer.update({
+        where: { id: existingDancer.id },
+        data: updatedDancerData
       })
 
-      if (existingGuardian) {
-        await prisma.guardian.update({
-          where: { id: existingGuardian.id },
-          data: {
-            firstName: guardianData.firstName,
-            lastName: guardianData.lastName,
-            email: guardianData.email,
-            phone: guardianData.phone,
-            relationship: guardianData.relationship,
-            authorized: guardianData.authorized,
-            address: personalData.address,
-            postalCode: personalData.postalCode,
-            city: personalData.city
-          }
+      // Mettre à jour les informations du responsable légal si nécessaire
+      if (guardianData) {
+        const existingGuardian = await tx.guardian.findFirst({
+          where: { dancerId: existingDancer.id }
         })
-      } else {
-        // Créer un nouveau responsable légal si il n'en existait pas
-        await prisma.guardian.create({
-          data: {
-            dancerId: existingDancer.id,
-            firstName: guardianData.firstName,
-            lastName: guardianData.lastName,
-            email: guardianData.email,
-            phone: guardianData.phone,
-            relationship: guardianData.relationship,
-            authorized: guardianData.authorized,
-            address: personalData.address,
-            postalCode: personalData.postalCode,
-            city: personalData.city
-          }
-        })
-      }
-    }
 
-    // Mettre à jour les contacts d'urgence si fournis
-    if (emergencyContacts && Array.isArray(emergencyContacts)) {
-      // Supprimer les anciens contacts d'urgence
-      await prisma.emergencyContact.deleteMany({
-        where: { dancerId: existingDancer.id }
-      })
-
-      // Créer les nouveaux contacts d'urgence
-      for (const contact of emergencyContacts) {
-        if (contact.firstName && contact.lastName && contact.phone && contact.relationship) {
-          await prisma.emergencyContact.create({
+        if (existingGuardian) {
+          await tx.guardian.update({
+            where: { id: existingGuardian.id },
+            data: {
+              firstName: guardianData.firstName,
+              lastName: guardianData.lastName,
+              email: guardianData.email,
+              phone: guardianData.phone,
+              relationship: guardianData.relationship,
+              authorized: guardianData.authorized,
+              address: personalData.address,
+              postalCode: personalData.postalCode,
+              city: personalData.city
+            }
+          })
+        } else {
+          // Créer un nouveau responsable légal si il n'en existait pas
+          await tx.guardian.create({
             data: {
               dancerId: existingDancer.id,
-              firstName: contact.firstName,
-              lastName: contact.lastName,
-              phone: contact.phone,
-              relationship: contact.relationship,
-              type: 'EMERGENCY_ONLY'
+              firstName: guardianData.firstName,
+              lastName: guardianData.lastName,
+              email: guardianData.email,
+              phone: guardianData.phone,
+              relationship: guardianData.relationship,
+              authorized: guardianData.authorized,
+              address: personalData.address,
+              postalCode: personalData.postalCode,
+              city: personalData.city
             }
           })
         }
       }
-    }
 
-    // Créer les nouvelles inscriptions pour les groupes sélectionnés
-    for (const group of selectedGroups) {
-      // Vérifier si le groupe existe, sinon le créer
-      let danceGroup = await prisma.danceGroup.findFirst({
-        where: { name: group.name }
-      })
-
-      if (!danceGroup) {
-        danceGroup = await prisma.danceGroup.create({
-          data: {
-            name: group.name,
-            ageGroup: group.ageGroup,
-            schedule: group.schedule,
-            description: group.description || '',
-            isActive: true
-          }
+      // Mettre à jour les contacts d'urgence si fournis
+      if (emergencyContacts && Array.isArray(emergencyContacts)) {
+        // Supprimer les anciens contacts d'urgence
+        await tx.emergencyContact.deleteMany({
+          where: { dancerId: existingDancer.id }
         })
-      }
 
-      // Vérifier si une inscription ACTIVE existe déjà pour ce groupe et cette année
-      // On permet de créer une nouvelle inscription même s'il y en a une rejetée
-      const existingActiveRegistrationForGroup = await prisma.registration.findFirst({
-        where: {
-          dancerId: existingDancer.id,
-          danceGroupId: danceGroup.id,
-          schoolYear: schoolYear,
-          status: {
-            in: ['SUBMITTED', 'APPROVED'] // On exclut 'REJECTED'
+        // Créer les nouveaux contacts d'urgence
+        for (const contact of emergencyContacts) {
+          if (contact.firstName && contact.lastName && contact.phone && contact.relationship) {
+            await tx.emergencyContact.create({
+              data: {
+                dancerId: existingDancer.id,
+                firstName: contact.firstName,
+                lastName: contact.lastName,
+                phone: contact.phone,
+                relationship: contact.relationship,
+                type: 'EMERGENCY_ONLY'
+              }
+            })
           }
         }
-      })
+      }
 
-      if (!existingActiveRegistrationForGroup) {
-        // Créer une nouvelle inscription (même s'il y en a une rejetée, on garde l'historique)
-        await prisma.registration.create({
-          data: {
+      // Créer les nouvelles inscriptions pour les groupes sélectionnés
+      for (const group of selectedGroups) {
+        // Vérifier si le groupe existe, sinon le créer
+        let danceGroup = await tx.danceGroup.findFirst({
+          where: { name: group.name }
+        })
+
+        if (!danceGroup) {
+          danceGroup = await tx.danceGroup.create({
+            data: {
+              name: group.name,
+              ageGroup: group.ageGroup,
+              schedule: group.schedule,
+              description: group.description || '',
+              isActive: true
+            }
+          })
+        }
+
+        // Vérifier si une inscription ACTIVE existe déjà pour ce groupe et cette année
+        // On permet de créer une nouvelle inscription même s'il y en a une rejetée
+        const existingActiveRegistrationForGroup = await tx.registration.findFirst({
+          where: {
             dancerId: existingDancer.id,
             danceGroupId: danceGroup.id,
             schoolYear: schoolYear,
-            sportCode: sportCodeData?.sportCode || null,
-            status: 'SUBMITTED',
-            submittedAt: new Date(),
-            reviewedAt: null,
-            reviewedBy: null,
-            notes: `Renouvellement depuis année précédente. ${healthData.healthStatus === 'positive' ? 'Certificat médical requis.' : ''}`
+            status: {
+              in: ['SUBMITTED', 'APPROVED'] // On exclut 'REJECTED'
+            }
           }
         })
-        console.log(`Created new registration for dancer ${existingDancer.id} in group ${danceGroup.id} for year ${schoolYear}`)
-      } else {
-        console.log(`Active registration already exists for dancer ${existingDancer.id} in group ${danceGroup.id} for year ${schoolYear} (status: ${existingActiveRegistrationForGroup.status})`)
+
+        if (!existingActiveRegistrationForGroup) {
+          // Créer une nouvelle inscription (même s'il y en a une rejetée, on garde l'historique)
+          await tx.registration.create({
+            data: {
+              dancerId: existingDancer.id,
+              danceGroupId: danceGroup.id,
+              schoolYear: schoolYear,
+              sportCode: sportCodeData?.sportCode || null,
+              status: 'SUBMITTED',
+              submittedAt: new Date(),
+              reviewedAt: null,
+              reviewedBy: null,
+              notes: `Renouvellement depuis année précédente. ${healthData.healthStatus === 'positive' ? 'Certificat médical requis.' : ''}`
+            }
+          })
+          lignes.push(`Created new registration for dancer ${existingDancer.id} in group ${danceGroup.id} for year ${schoolYear}`)
+        } else {
+          lignes.push(`Active registration already exists for dancer ${existingDancer.id} in group ${danceGroup.id} for year ${schoolYear} (status: ${existingActiveRegistrationForGroup.status})`)
+        }
       }
-    }
+
+      return lignes
+    }, { maxWait: 10000, timeout: 20000 })
+
+    // Journalisé seulement après commit, pour ne pas annoncer des écritures annulées
+    for (const ligne of journal) console.log(ligne)
 
     console.log('=== Renouvellement terminé avec succès ===')
     return {
@@ -316,7 +326,5 @@ export default defineEventHandler(async (event) => {
       statusCode: error.statusCode || 500,
       statusMessage: error.message || 'Erreur lors du renouvellement'
     })
-  } finally {
-    await prisma.$disconnect()
   }
 })

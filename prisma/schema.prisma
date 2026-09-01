@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // Genere sous un nom de package valide : le dossier .prisma par defaut commence
+  // par un point, ce que la resolution ESM de Nitro rejette au build.
+  output   = "../node_modules/square630-prisma"
 }
 
 datasource db {
