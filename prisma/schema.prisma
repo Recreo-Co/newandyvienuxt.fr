@@ -169,6 +169,7 @@ enum registrations_status {
 }
 
 enum dancers_schoolLevel {
+  GS
   CP
   CE1
   CE2

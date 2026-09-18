@@ -121,6 +121,8 @@ export default defineEventHandler(async (event) => {
     // Fonction pour convertir les niveaux scolaires
     const convertSchoolLevel = (level: string) => {
       const mapping: Record<string, string> = {
+        'GS': 'GS',
+        'Grande Section': 'GS',
         'CP': 'CP',
         'CE1': 'CE1', 
         'CE2': 'CE2',

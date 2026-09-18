@@ -514,6 +514,7 @@ const calculateAge = (birthDate: string) => {
 
 const formatSchoolLevel = (level: string) => {
   const levels: { [key: string]: string } = {
+    'GS': 'Grande Section',
     'CP': 'CP',
     'CE1': 'CE1',
     'CE2': 'CE2',

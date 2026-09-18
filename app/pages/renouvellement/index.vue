@@ -769,6 +769,7 @@ const formatDate = (dateStr) => {
 
 const formatSchoolLevel = (level) => {
   const mapping = {
+    'GS': 'Grande Section',
     'CP': 'CP',
     'CE1': 'CE1',
     'CE2': 'CE2', 

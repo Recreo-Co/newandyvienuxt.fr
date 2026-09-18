@@ -347,7 +347,7 @@
             </div>
 
             <!-- Responsable légal et contacts -->
-            <div v-if="registration.dancer.guardian || (registration.dancer.emergencyContacts && registration.dancer.emergencyContacts.length > 0)" 
+            <div v-if="editMode || registration.dancer.guardian || (registration.dancer.emergencyContacts && registration.dancer.emergencyContacts.length > 0)"
                  class="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
               <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
                 <svg class="w-5 h-5 text-orange-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,7 +357,71 @@
               </h3>
 
               <!-- Responsable légal -->
-              <div v-if="registration.dancer.guardian" class="mb-6">
+              <div v-if="editMode" class="mb-6">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-orange-100/80 font-medium">Responsable légal</h4>
+                  <button v-if="!editableGuardian"
+                          @click="addGuardian"
+                          class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Ajouter
+                  </button>
+                </div>
+                <div v-if="!editableGuardian" class="text-orange-100/60 text-sm">
+                  Aucun responsable légal enregistré
+                </div>
+                <div v-else class="bg-white/5 rounded-lg p-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="text-xs font-medium text-orange-100/60 uppercase tracking-wide">Prénom *</label>
+                      <input v-model="editableGuardian.firstName"
+                             type="text"
+                             class="mt-1 block w-full bg-white/10 border rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                             :class="validationErrors.guardian?.firstName ? 'border-red-500' : 'border-white/20'"
+                      />
+                      <p v-if="validationErrors.guardian?.firstName" class="text-red-400 text-xs mt-1">{{ validationErrors.guardian.firstName }}</p>
+                    </div>
+                    <div>
+                      <label class="text-xs font-medium text-orange-100/60 uppercase tracking-wide">Nom *</label>
+                      <input v-model="editableGuardian.lastName"
+                             type="text"
+                             class="mt-1 block w-full bg-white/10 border rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                             :class="validationErrors.guardian?.lastName ? 'border-red-500' : 'border-white/20'"
+                      />
+                      <p v-if="validationErrors.guardian?.lastName" class="text-red-400 text-xs mt-1">{{ validationErrors.guardian.lastName }}</p>
+                    </div>
+                    <div>
+                      <label class="text-xs font-medium text-orange-100/60 uppercase tracking-wide">Relation</label>
+                      <input v-model="editableGuardian.relationship"
+                             type="text"
+                             placeholder="Parent"
+                             class="mt-1 block w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label class="text-xs font-medium text-orange-100/60 uppercase tracking-wide">Téléphone *</label>
+                      <input v-model="editableGuardian.phone"
+                             type="tel"
+                             class="mt-1 block w-full bg-white/10 border rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                             :class="validationErrors.guardian?.phone ? 'border-red-500' : 'border-white/20'"
+                      />
+                      <p v-if="validationErrors.guardian?.phone" class="text-red-400 text-xs mt-1">{{ validationErrors.guardian.phone }}</p>
+                    </div>
+                    <div class="md:col-span-2">
+                      <label class="text-xs font-medium text-orange-100/60 uppercase tracking-wide">Email *</label>
+                      <input v-model="editableGuardian.email"
+                             type="email"
+                             class="mt-1 block w-full bg-white/10 border rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                             :class="validationErrors.guardian?.email ? 'border-red-500' : 'border-white/20'"
+                      />
+                      <p v-if="validationErrors.guardian?.email" class="text-red-400 text-xs mt-1">{{ validationErrors.guardian.email }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="registration.dancer.guardian" class="mb-6">
                 <h4 class="text-orange-100/80 font-medium mb-3">Responsable légal</h4>
                 <div class="bg-white/5 rounded-lg p-4">
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -546,7 +610,19 @@
                       </svg>
                       <span class="text-orange-100/80">{{ registration.danceGroup.ageGroup }}</span>
                     </div>
-                    <div v-if="registration.sportCode" class="flex items-center gap-2">
+                    <div v-if="editMode" class="pt-2">
+                      <label class="text-xs font-medium text-orange-100/60 uppercase tracking-wide">Code sport (Pass'Sport)</label>
+                      <input v-model="editableSportCode"
+                             type="text"
+                             maxlength="50"
+                             placeholder="Aucun code"
+                             class="mt-1 block w-full bg-white/10 border rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                             :class="validationErrors.sportCode ? 'border-red-500' : 'border-white/20'"
+                      />
+                      <p v-if="validationErrors.sportCode" class="text-red-400 text-xs mt-1">{{ validationErrors.sportCode }}</p>
+                      <p class="text-orange-100/50 text-xs mt-1">Appliqué à toutes les inscriptions du danseur pour cette année.</p>
+                    </div>
+                    <div v-else-if="registration.sportCode" class="flex items-center gap-2">
                       <svg class="w-4 h-4 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                       </svg>
@@ -625,6 +701,8 @@ const savingChanges = ref(false)
 const editableData = ref({})
 const originalData = ref({})
 const editableEmergencyContacts = ref([])
+const editableGuardian = ref(null)
+const editableSportCode = ref('')
 const validationErrors = ref({})
 const toast = ref({
   show: false,
@@ -1116,7 +1194,13 @@ const toggleEditMode = () => {
     
     // Copier les contacts d'urgence pour l'édition
     editableEmergencyContacts.value = JSON.parse(JSON.stringify(registration.value.dancer.emergencyContacts || []))
-    
+
+    // Copier le responsable légal (null s'il n'y en a pas) et le code sport
+    editableGuardian.value = registration.value.dancer.guardian
+      ? JSON.parse(JSON.stringify(registration.value.dancer.guardian))
+      : null
+    editableSportCode.value = registration.value.sportCode || ''
+
     // Formater la date pour l'input date
     if (editableData.value.birthDate) {
       const date = new Date(editableData.value.birthDate)
@@ -1132,6 +1216,8 @@ const cancelEdit = () => {
   editableData.value = {}
   originalData.value = {}
   editableEmergencyContacts.value = []
+  editableGuardian.value = null
+  editableSportCode.value = ''
   validationErrors.value = {}
 }
 
@@ -1245,12 +1331,103 @@ const validateEmergencyContacts = () => {
   return errors
 }
 
+const addGuardian = () => {
+  editableGuardian.value = {
+    firstName: '',
+    lastName: '',
+    relationship: 'Parent',
+    email: '',
+    phone: ''
+  }
+}
+
+const validateGuardian = () => {
+  const errors = {}
+  const guardian = editableGuardian.value
+
+  // Pas de responsable légal en cours d'édition : rien à valider
+  if (!guardian) return errors
+
+  const guardianErrors = {}
+
+  if (!guardian.firstName || guardian.firstName.trim() === '') {
+    guardianErrors.firstName = 'Le prénom est obligatoire'
+  }
+
+  if (!guardian.lastName || guardian.lastName.trim() === '') {
+    guardianErrors.lastName = 'Le nom est obligatoire'
+  }
+
+  if (!guardian.email || guardian.email.trim() === '') {
+    guardianErrors.email = 'L\'email est obligatoire'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guardian.email.trim())) {
+    guardianErrors.email = 'L\'adresse email n\'est pas valide'
+  }
+
+  if (!guardian.phone || guardian.phone.trim() === '') {
+    guardianErrors.phone = 'Le téléphone est obligatoire'
+  } else if (!/^[\d\s\-\.\+\(\)]{10,}$/.test(guardian.phone.trim())) {
+    guardianErrors.phone = 'Le numéro de téléphone n\'est pas valide'
+  }
+
+  if (Object.keys(guardianErrors).length > 0) {
+    errors.guardian = guardianErrors
+  }
+
+  return errors
+}
+
+const validateSportCode = () => {
+  const errors = {}
+
+  if ((editableSportCode.value || '').trim().length > 50) {
+    errors.sportCode = 'Le code sport ne peut pas dépasser 50 caractères'
+  }
+
+  return errors
+}
+
+// N'appelle l'API que si le responsable légal a réellement été modifié
+const saveGuardian = async () => {
+  const guardian = editableGuardian.value
+  if (!guardian) return
+
+  const original = registration.value.dancer.guardian
+  const fields = ['firstName', 'lastName', 'relationship', 'email', 'phone']
+  const changed = !original || fields.some(field => (guardian[field] || '').trim() !== (original[field] || ''))
+  if (!changed) return
+
+  await $fetch(`/api/admin/dancers/${registration.value.dancer.id}/guardian`, {
+    method: 'PUT',
+    body: {
+      firstName: guardian.firstName,
+      lastName: guardian.lastName,
+      relationship: guardian.relationship,
+      email: guardian.email,
+      phone: guardian.phone
+    }
+  })
+}
+
+// N'appelle l'API que si le code sport a réellement été modifié
+const saveSportCode = async () => {
+  const newCode = (editableSportCode.value || '').trim()
+  if (newCode === (registration.value.sportCode || '')) return
+
+  await $fetch(`/api/admin/registrations/${registrationId}/sport-code`, {
+    method: 'PUT',
+    body: { sportCode: newCode }
+  })
+}
+
 const saveChanges = async () => {
   // Valider les données
   const dancerErrors = validateDancerData()
   const contactErrors = validateEmergencyContacts()
-  
-  validationErrors.value = { ...dancerErrors, ...contactErrors }
+  const guardianErrors = validateGuardian()
+  const sportCodeErrors = validateSportCode()
+
+  validationErrors.value = { ...dancerErrors, ...contactErrors, ...guardianErrors, ...sportCodeErrors }
   
   // Si il y a des erreurs, arrêter la sauvegarde
   if (Object.keys(validationErrors.value).length > 0) {
@@ -1270,7 +1447,11 @@ const saveChanges = async () => {
     if (response.success) {
       // Sauvegarder les contacts d'urgence modifiés
       await saveEmergencyContacts()
-      
+
+      // Sauvegarder le responsable légal et le code sport s'ils ont changé
+      await saveGuardian()
+      await saveSportCode()
+
       await refresh()
       editMode.value = false
       showToast('Modifications sauvegardées avec succès')
