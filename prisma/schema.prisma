@@ -57,6 +57,7 @@ model Dancer {
   schoolLevel dancers_schoolLevel
   tShirtSize  dancers_tShirtSize
   otherInfo   String?             @db.Text
+  medicalInfo String?             @db.Text
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
